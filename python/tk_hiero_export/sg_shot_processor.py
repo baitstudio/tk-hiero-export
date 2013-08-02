@@ -39,7 +39,7 @@ class ShotgunShotProcessor(ShotgunHieroObjectBase, FnShotProcessor.ShotProcessor
         self._shotCreatePreset = None
 
     def displayName(self):
-        return "Shotgun Shot Processor"
+        return "Shotgun Shot Processor - something"
 
     def toolTip(self):
         return "Process as Shots generates output on a per shot basis and logs it in Shotgun."
@@ -50,7 +50,7 @@ class ShotgunShotProcessor(ShotgunHieroObjectBase, FnShotProcessor.ShotProcessor
         """
         
         # Use tank to set the project root
-        self._exportTemplate.setExportRootPath(self.app.tank.project_path)
+        #self._exportTemplate.setExportRootPath(self.app.tank.project_path)
 
         # add a top level task to manage shotgun shots
         exportTemplate = self._exportTemplate.flatten()

@@ -41,13 +41,13 @@ class ShotgunShotUpdater(ShotgunHieroObjectBase, FnShotExporter.ShotTask):
         FnShotExporter.ShotTask.taskStep(self)
 
         # ensure we have a sequence in shotgun        
-        sg_sequence = self._create_and_return_sg_sequence()
+        sg_scene = self._create_and_return_sg_scene()
         
         # refresh thumbnail for seq
-        self._upload_poster_frame(sg_sequence, self._sequence)
+        self._upload_poster_frame(sg_scene, self._sequence)
         
         # ensure we have a shot in shotgun
-        sg_shot = self._create_and_return_sg_shot(sg_sequence)
+        sg_shot = self._create_and_return_sg_shot(sg_scene)
 
         # update the shot in Shotgun!
         data = {}
@@ -149,9 +149,53 @@ class ShotgunShotUpdater(ShotgunHieroObjectBase, FnShotExporter.ShotTask):
         # cache the results
         self.app.sg_lookup_map[self._sequence.guid()] = sg_seq
         return sg_seq
+    
+    def _create_and_return_sg_scene(self):
+        """
+        Checks for a sequence in shotgun for the current object.
+        Creates on if it doesn't exist.
+        
+        :returns: A shotgun entity dictionary
+        """
+        
+        # stick a lookup cache on the app object.
+        
+        if self.app.first_shot:
+            self.app.sg_lookup_map = {}
+
+        if self._project.guid() in self.app.sg_lookup_map:
+            return self.app.sg_lookup_map[ self._project.guid() ]
+        
+        
+        # sequence not found in cache, grab it from Shotgun
+        sg = self.app.tank.shotgun
+        filt = [
+            ['project', 'is', self.app.context.project],
+            ['code', 'is', self._project.name()],
+        ]
+        episodes = sg.find('Scene', filt)
+        if len(episodes) > 1:
+            # can not handle multiple sequences with the same name
+            raise StandardError("Multiple episodes named '%s' found" % self._project.name())
+
+        if len(episodes) == 0:
+            # create the sequence in shotgun
+            data = {
+                'code': self._project.name(),
+                'project': self.app.context.project,
+            }
+            sg_ep = sg.create('Scene', data)
+            self.app.log_info("Created Episodes in Shotgun: %s" % self._project.name())
+        
+        else:
+            sg_ep = episodes[0]
+
+        # cache the results
+        self.app.sg_lookup_map[self._project.guid()] = sg_ep
+        return sg_ep
 
     
-    def _create_and_return_sg_shot(self, sg_sequence):
+    def _create_and_return_sg_shot(self, sg_scene):
         """
         Checks for a shot in shotgun for the current object.
         Creates on if it doesn't exist.
@@ -162,7 +206,7 @@ class ShotgunShotUpdater(ShotgunHieroObjectBase, FnShotExporter.ShotTask):
         sg = self.app.tank.shotgun
         filt = [
             ['project', 'is', self.app.context.project],
-            ['sg_sequence', 'is', sg_sequence],
+            ['sg_scene', 'is', sg_scene],
             ['code', 'is', self._item.name()],
         ]
         shots = sg.find('Shot', filt)
@@ -173,7 +217,7 @@ class ShotgunShotUpdater(ShotgunHieroObjectBase, FnShotExporter.ShotTask):
             # create shot in shotgun
             data = {
                 'code': self._item.name(),
-                'sg_sequence': sg_sequence,
+                'sg_scene': sg_scene,
                 'project': self.app.context.project,
             }
             shot = sg.create('Shot', data)

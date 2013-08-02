@@ -105,6 +105,14 @@ class HieroExport(Application):
             self.log_debug("Translated %s --> %s" % (render_template, render_hiero_str))
             
             # check so that no unknown keywords exist in the templates after translation
+            
+            print 'plate'
+            print plate_hiero_str
+            print 'script'
+            print script_hiero_str
+            print 'render'
+            print render_hiero_str
+            
             self._validate_hiero_export_template(plate_hiero_str)
             self._validate_hiero_export_template(script_hiero_str)
             self._validate_hiero_export_template(render_hiero_str)
