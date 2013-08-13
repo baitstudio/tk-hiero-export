@@ -27,8 +27,23 @@ import tank
 
 from .base import ShotgunHieroObjectBase
 from .shot_updater import ShotgunShotUpdaterPreset
+'''
+#testing shotgun connection
+sys.path.append('K:\Shotgun')
+
+from shotgun_api3 import Shotgun
+
+SERVER_PATH = "https://bait.shotgunstudio.com"
+SCRIPT_NAME = 'Tank'     
+SCRIPT_KEY = 'edf31b2cf68378ae146e9a156564b8322b9f7a18'
+
+sg = Shotgun(SERVER_PATH, SCRIPT_NAME, SCRIPT_KEY)
 
 
+schema = sg.schema_field_read('Shot', 'sg_location')
+location = schema['sg_location']['properties']['valid_values']['value']
+print location
+'''
 class ShotgunShotProcessor(ShotgunHieroObjectBase, FnShotProcessor.ShotProcessor):
     """
     Add extra UI and hook functionality to the built in Shot processor.
@@ -126,10 +141,20 @@ class ShotgunShotProcessor(ShotgunHieroObjectBase, FnShotProcessor.ShotProcessor
         schema = self.app.shotgun.schema_field_read('Shot', 'sg_status_list')
         statuses = schema['sg_status_list']['properties']['valid_values']['value']
 
+        ctx=self.app.context
+        fields = ['assets']
+        filt = [['id', 'is', ctx.entity['id']]]
+        assets =[]
+        scene_assets = self.app.shotgun.find_one('Scene', filt, fields=fields)
+        for t in scene_assets['assets']:
+            assets.append(t['name'])
 
-        values = [statuses, templates]
-        labels = ['Shotgun Shot Status', 'Shotgun Task Template for Shots']
-        keys = ['sg_status_hiero_tags', 'task_template_map']
+        schema = self.app.shotgun.schema_field_read('Shot', 'sg_location')
+        location = schema['sg_location']['properties']['valid_values']['value']
+
+        values = [statuses, templates, assets, location]
+        labels = ['Shot Status', 'Task Template', 'Shot Assets', 'Location']
+        keys = ['sg_status_hiero_tags', 'task_template_map', 'assets', 'locations']
 
 
         # build a map of tag value pairs from the properties
@@ -220,11 +245,6 @@ class ShotgunShotProcessor(ShotgunHieroObjectBase, FnShotProcessor.ShotProcessor
         tags = [tag for tag in tags if "Nuke Project File" not in tag.name()]
         return tags
 
-        
-        
-        
-        
-        
 
 
 class ShotgunShotProcessorPreset(ShotgunHieroObjectBase, FnShotProcessor.ShotProcessorPreset):
@@ -263,6 +283,15 @@ class ShotgunShotProcessorPreset(ShotgunHieroObjectBase, FnShotProcessor.ShotPro
                                                    ("In Progress", default_template),
                                                    ("On Hold", default_template),
                                                    ("Final", default_template)]
+        
+        default_properties["assets"] = [ ("Sitting Room", "Sitting Room"),
+                                        ("Main_Outfit", "Main_Outfit"),
+                                        ("Plane", "Plane"),
+                                        ("Car", "Car"), 
+                                        ("Train", "Train")]
+        
+        default_properties["locations"] = [ ("INT", "INT"), 
+                                        ("EXT", "EXT")]
         
         # finally, update the proerties based on the properties passed to the constructor
         explicit_constructor_properties = properties.get('shotgunShotCreateProperties', {})

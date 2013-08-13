@@ -16,6 +16,7 @@ import tempfile
 from PySide import QtGui
 from PySide import QtCore
 
+
 import hiero.core
 from hiero.exporters import FnShotExporter
 from hiero.exporters import FnShotProcessor
@@ -23,6 +24,8 @@ from hiero.exporters import FnTranscodeExporter
 import tank
 
 from .base import ShotgunHieroObjectBase
+
+
 
 class ShotgunShotUpdater(ShotgunHieroObjectBase, FnShotExporter.ShotTask):
     """
@@ -57,6 +60,26 @@ class ShotgunShotUpdater(ShotgunHieroObjectBase, FnShotExporter.ShotTask):
         data["sg_cut_duration"] = end - start + 1 
         data["sg_cut_in"] = start
         data["sg_cut_out"] = end
+        
+        # get asset from the hiero tags
+        assets = []
+        asset_map = dict(self._preset.properties()["assets"])
+        for tag in self._item.tags():
+            if tag.name() in asset_map:
+                assets.append(self.app.tank.shotgun.find_one('Asset',[['code', 'is', asset_map[tag.name()]]]))
+                break      
+        if assets:
+            data['assets'] = assets
+        
+        # get location from the hiero tags
+        location = None
+        location_map = dict(self._preset.properties()["locations"])
+        for tag in self._item.tags():
+            if tag.name() in location_map:
+                location = location_map[tag.name()]
+                break
+        if location:
+            data['sg_location'] = location
         
         # get status from the hiero tags
         status = None
@@ -132,7 +155,7 @@ class ShotgunShotUpdater(ShotgunHieroObjectBase, FnShotExporter.ShotTask):
         sequences = sg.find('Sequence', filt)
         if len(sequences) > 1:
             # can not handle multiple sequences with the same name
-            raise StandardError("Multiple sequences named '%s' found" % self._sequence.name())
+            raise StandardError("Multipthele sequences named '%s' found" % self._sequence.name())
 
         if len(sequences) == 0:
             # create the sequence in shotgun
@@ -248,14 +271,6 @@ class ShotgunShotUpdater(ShotgunHieroObjectBase, FnShotExporter.ShotTask):
             shutil.rmtree(thumbdir)
         
         
-        
-        
-        
-        
-        
-
-
-
 class ShotgunShotUpdaterPreset(ShotgunHieroObjectBase, hiero.core.TaskPresetBase):
     """
     Settings preset
